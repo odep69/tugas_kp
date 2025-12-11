@@ -2,9 +2,20 @@
 import 'package:flutter/material.dart';
 import 'package:projec_kp/login.dart';
 import 'package:projec_kp/loading.dart';
+import 'package:projec_kp/booking.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  // Tambahkan variabel opsional untuk menerima data booking baru
+  final String? bookedServiceName;
+  final String? bookedDate;
+  final String? bookedTime;
+
+  const HomePage({
+    super.key,
+    this.bookedServiceName,
+    this.bookedDate,
+    this.bookedTime,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -12,16 +23,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Color darkBlueColor = const Color(0xFF0D325E);
-  // Indeks untuk BottomNavigationBar
-  int _selectedIndex = 0; 
+  int _selectedIndex = 0;
 
-  // Daftar widget untuk setiap tab (hanya menampilkan Home untuk saat ini)
-  static final List<Widget> _widgetOptions = <Widget>[
-    const HomeContent(), // Konten Home utama
-    const Center(child: Text('Booking Page', style: TextStyle(color: Colors.white))),
-    const Center(child: Text('Inventory Page', style: TextStyle(color: Colors.white))),
-    const ProfileContent(),
-  ];
+  // Kita hapus list statis _widgetOptions dan ganti dengan method
+  // agar bisa mengakses data dari widget (widget.bookedServiceName)
+  List<Widget> _getWidgetOptions() {
+    return <Widget>[
+      // Tab 0: HomeContent (Kita kirim data ke sini)
+      HomeContent(
+        serviceName: widget.bookedServiceName,
+        dateStr: widget.bookedDate,
+        timeStr: widget.bookedTime,
+      ),
+      // Tab 1-3: Placeholder
+      const Center(child: Text('Booking History', style: TextStyle(color: Colors.white))),
+      const Center(child: Text('Inventory Page', style: TextStyle(color: Colors.white))),
+      const ProfileContent(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -31,6 +50,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil widget berdasarkan index saat ini
+    final currentWidget = _getWidgetOptions().elementAt(_selectedIndex);
+
     return Scaffold(
       backgroundColor: darkBlueColor,
       appBar: AppBar(
@@ -45,7 +67,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         actions: const [
-          // Ikon notifikasi (lonceng)
           Padding(
             padding: EdgeInsets.only(right: 15.0),
             child: Icon(Icons.notifications_none, color: Colors.white, size: 30),
@@ -53,10 +74,8 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       
-      // Tampilkan konten yang dipilih berdasarkan tab
-      body: _widgetOptions.elementAt(_selectedIndex),
+      body: currentWidget,
 
-      // --- Bottom Navigation Bar ---
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -65,81 +84,37 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF42A5F5), // Warna biru cerah
+        selectedItemColor: const Color(0xFF42A5F5),
         unselectedItemColor: Colors.white70,
         onTap: _onItemTapped,
         backgroundColor: darkBlueColor,
-        type: BottomNavigationBarType.fixed, // Penting agar warna latar belakang tetap
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }
 }
 
-
 // --- Widget Konten Home Utama ---
 class HomeContent extends StatelessWidget {
-  const HomeContent({super.key});
+  // Variabel data booking
+  final String? serviceName;
+  final String? dateStr;
+  final String? timeStr;
+
+  const HomeContent({
+    super.key,
+    this.serviceName,
+    this.dateStr,
+    this.timeStr,
+  });
 
   final Color darkBlueColor = const Color(0xFF0D325E);
 
-  // Widget pembantu untuk tombol aksi cepat
-  Widget _buildActionButton(String title, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? darkBlueColor.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? Colors.white : Colors.transparent),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: isActive ? Colors.white : Colors.white70,
-          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
-  }
-
-  // Widget pembantu untuk Kartu Inventory
-  Widget _buildInventoryCard(String title, String status, Color statusColor) {
-    return Expanded(
-      child: Card(
-        color: Colors.white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Container(
-          padding: const EdgeInsets.all(15.0),
-          height: 120, // Ketinggian tetap untuk inventory card
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: darkBlueColor,
-                ),
-              ),
-              Text(
-                status,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: statusColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Cek apakah ada data booking baru?
+    bool hasBooking = serviceName != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
@@ -147,16 +122,19 @@ class HomeContent extends StatelessWidget {
         children: <Widget>[
           const SizedBox(height: 20),
 
-          // --- Tombol Book Service ---
+          // Tombol Book Service
           SizedBox(
             width: double.infinity,
             height: 60,
             child: ElevatedButton(
               onPressed: () {
-                // Logika Book Service
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BookingStep1Page()),
+                );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF42A5F5), // Biru cerah
+                backgroundColor: const Color(0xFF42A5F5),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -175,7 +153,7 @@ class HomeContent extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // --- Kartu Service Ruitin ---
+          // --- KARTU STATUS SERVICE (DINAMIS) ---
           Card(
             color: Colors.white,
             elevation: 2,
@@ -190,28 +168,37 @@ class HomeContent extends StatelessWidget {
                     style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                   const SizedBox(height: 5),
-                  const Text(
-                    'Service Rutin',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  
+                  // Tampilkan Nama Service (Default: 'No Active Service' jika kosong)
+                  Text(
+                    hasBooking ? serviceName! : 'No Active Service', 
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
+                  
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Hari ini, 10:30',
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
+                      // Tampilkan Tanggal & Waktu
+                      Expanded(
+                        child: Text(
+                          hasBooking ? '$dateStr, $timeStr' : 'Tap "Book Service" to start',
+                          style: const TextStyle(fontSize: 15, color: Colors.black54),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      
+                      // Tag Status
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: hasBooking ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(5),
                         ),
-                        child: const Text(
-                          'Disetujui',
+                        child: Text(
+                          hasBooking ? 'Booked' : 'Inactive',
                           style: TextStyle(
-                            color: Colors.green,
+                            color: hasBooking ? Colors.green : Colors.grey,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -226,15 +213,8 @@ class HomeContent extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // --- Quick Actions Header dan Tombol ---
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          // --- Quick Actions Header ---
+          const Text('Quick Actions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -245,93 +225,78 @@ class HomeContent extends StatelessWidget {
               _buildActionButton('Schedule', false),
             ],
           ),
-
+          
           const SizedBox(height: 30),
 
           // --- Inventory Header ---
-          const Text(
-            'Inventory',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Inventory', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-
-          // --- Inventory Cards ---
           Row(
             children: [
-              // Kartu Tire
-              _buildInventoryCard(
-                'Tire',
-                '12 in stock',
-                Colors.black54, // Warna abu-abu untuk stock
-              ),
+              _buildInventoryCard('Tire', '12 in stock', Colors.black54),
               const SizedBox(width: 15),
-              // Kartu Oil
-              _buildInventoryCard(
-                'Oil',
-                'Out of stock',
-                Colors.red, // Warna merah untuk out of stock
-              ),
+              _buildInventoryCard('Oil', 'Out of stock', Colors.red),
             ],
           ),
         ],
       ),
     );
   }
+
+  // Widget Pembantu UI (Sama seperti sebelumnya)
+  Widget _buildActionButton(String title, bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive ? darkBlueColor.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isActive ? Colors.white : Colors.transparent),
+      ),
+      child: Text(title, style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
+    );
+  }
+
+  Widget _buildInventoryCard(String title, String status, Color statusColor) {
+    return Expanded(
+      child: Card(
+        color: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Container(
+          padding: const EdgeInsets.all(15.0),
+          height: 120,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkBlueColor)),
+              Text(status, style: TextStyle(fontSize: 16, color: statusColor, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
+// --- Widget Profile (Untuk Logout) ---
 class ProfileContent extends StatelessWidget {
   const ProfileContent({super.key});
-
-  final Color darkBlueColor = const Color(0xFF0D325E);
-
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Text(
-            'Welcome to Profile Page',
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          const SizedBox(height: 30),
-          // --- Tombol Logout ---
-          SizedBox(
-            width: 200,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Logika Logout: Navigasi ke LoadingScreen dengan tujuan LoginPage.
-                // Menggunakan pushAndRemoveUntil untuk menghapus semua history (Halaman Home, dll.)
-                Navigator.pushAndRemoveUntil(
+      child: ElevatedButton.icon(
+        onPressed: () {
+            // Logout logic
+             Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const LoadingScreen(
-                            nextPage: LoginPage(), // Tujuan: Halaman Login
-                          )),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                   (Route<dynamic> route) => false,
                 );
-              },
-              icon: const Icon(Icons.logout, color: Colors.red),
-              label: const Text(
-                'Logout',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: darkBlueColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                elevation: 5,
-              ),
-            ),
-          ),
-        ],
+        },
+        icon: const Icon(Icons.logout, color: Colors.red),
+        label: const Text('Logout', style: TextStyle(color: Color(0xFF0D325E))),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
       ),
     );
   }

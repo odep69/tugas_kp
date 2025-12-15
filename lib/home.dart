@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:projec_kp/login.dart';
 import 'package:projec_kp/loading.dart';
 import 'package:projec_kp/booking.dart';
+import 'package:projec_kp/inventory_page.dart';
+import 'package:projec_kp/history.dart';
+import 'package:projec_kp/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   // Tambahkan variabel opsional untuk menerima data booking baru
@@ -42,11 +45,39 @@ class _HomePageState extends State<HomePage> {
     ];
   }
 
-  void _onItemTapped(int index) {
+void _onItemTapped(int index) {
+  if (index == 2) { 
+    // Index 2: Inventory
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const InventoryListPage()),
+    );
+  } else if (index == 1) { 
+    // Index 1: Booking/History
+    final homeWidget = widget; 
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistoryPage(
+          latestServiceName: homeWidget.bookedServiceName, 
+          latestDate: homeWidget.bookedDate, 
+          latestTime: homeWidget.bookedTime,
+        ),
+      ),
+    );
+  } else if (index == 3) { 
+    // Index 3: Profile (Tambahkan ini)
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfilePage()),
+    );
+  } else {
+    // Index 0: Home
     setState(() {
       _selectedIndex = index;
     });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -218,11 +249,14 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _buildActionButton('Active', true),
+              // Tombol 'Active' (Tidak melakukan apa-apa, karena sudah di halaman ini)
+              _buildActionButton(context, 'Active', true, 0), 
               const SizedBox(width: 10),
-              _buildActionButton('History', false),
+              // Tombol 'History'
+              _buildActionButton(context, 'History', false, 1), 
               const SizedBox(width: 10),
-              _buildActionButton('Schedule', false),
+              // Tombol 'Schedule'
+              _buildActionButton(context, 'Schedule', false, 2), 
             ],
           ),
           
@@ -233,9 +267,9 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _buildInventoryCard('Tire', '12 in stock', Colors.black54),
+              _buildInventoryCard(context, 'Tire', '12 in stock', Colors.black54),
               const SizedBox(width: 15),
-              _buildInventoryCard('Oil', 'Out of stock', Colors.red),
+              _buildInventoryCard(context, 'Oil', 'Out of stock', Colors.red),
             ],
           ),
         ],
@@ -243,20 +277,47 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  // Widget Pembantu UI (Sama seperti sebelumnya)
-  Widget _buildActionButton(String title, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? darkBlueColor.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? Colors.white : Colors.transparent),
+    Widget _buildActionButton(BuildContext context, String title, bool isActive, int actionIndex) {
+    final Color darkBlueColor = const Color(0xFF0D325E);
+  
+  // Ambil data dari HomeContent (this.) - Ini akan menjadi null jika belum ada booking.
+  final latestName = serviceName; 
+  final latestDate = dateStr;
+  final latestTime = timeStr;
+
+  final Map<int, Widget> destinationPages = {
+    // KITA AKAN SELALU MENGIRIM DATA LATEST BOOKING KE HISTORYPAGE
+    1: HistoryPage(
+          latestServiceName: latestName, // Sudah benar
+          latestDate: latestDate, // Sudah benar
+          latestTime: latestTime, // Sudah benar
+       ), 
+    2: const SchedulePage(), 
+  };
+    
+    return GestureDetector(
+      onTap: () {
+        if (actionIndex != 0) {
+          // Navigasi jika bukan tab 'Active'
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destinationPages[actionIndex]!),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? darkBlueColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isActive ? Colors.white : Colors.transparent),
+        ),
+        child: Text(title, style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
       ),
-      child: Text(title, style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
     );
   }
 
-  Widget _buildInventoryCard(String title, String status, Color statusColor) {
+  Widget _buildInventoryCard(BuildContext context, String title, String status, Color statusColor) {
     return Expanded(
       child: Card(
         color: Colors.white,
